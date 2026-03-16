@@ -127,6 +127,7 @@
   .btn { display: block; width: 100%; padding: 16px; border: none; border-radius: 10px; font-family: 'Jost', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; }
   .btn-primary { background: var(--acid); color: #1a2b1c; box-shadow: 0 4px 18px rgba(141,182,0,0.35); }
   .btn-primary:hover { background: var(--acid-hover); transform: translateY(-1px); box-shadow: 0 6px 22px rgba(141,182,0,0.45); }
+  .btn-reset-large { padding: 20px 16px; font-size: 16px; }
   .btn-refresh { background: var(--surface); color: var(--muted); border: 1.5px solid var(--border); font-size: 13px; padding: 11px; }
   .btn-refresh:hover { border-color: var(--border-dark); color: var(--text2); }
   .btn-recipe { background: var(--surface); color: var(--text2); border: 1.5px solid var(--border); font-size: 13px; padding: 11px; font-weight: 500; letter-spacing: 0.03em; }
@@ -284,9 +285,7 @@
     <h1><em>Nectar Buddy</em></h1>
   </div>
 
-  <button class="btn btn-primary" id="reset-btn" onclick="resetFeeder()" disabled>&#x2713; I Changed the Feeders Today</button>
-  <button class="btn btn-refresh" id="refresh-btn" onclick="refreshWeather()" disabled>&#8635; Refresh Weather</button>
-  <button class="btn btn-recipe" onclick="openRecipe()">&#x1F9EA; DIY Nectar Recipe</button>
+  <button class="btn btn-primary btn-reset-large" id="reset-btn" onclick="resetFeeder()" disabled>&#x2713; I Changed the Feeders Today</button>
 
   <div class="weather-card" id="weather-card" style="display:none">
     <div class="weather-card-title" id="weather-card-title">Today&rsquo;s Forecast</div>
@@ -300,6 +299,12 @@
     <div class="interval-badge" id="interval-badge"></div>
   </div>
 
+  <button class="btn btn-refresh" id="refresh-btn" onclick="refreshWeather()" disabled>&#8635; Refresh Weather</button>
+
+  <div class="status-card" id="status-card">
+    <p class="status-inactive">Turn on reminders when you put out your feeders.</p>
+  </div>
+
   <div class="toggle-section">
     <div>
       <div class="toggle-label">Reminders Active</div>
@@ -309,10 +314,6 @@
       <input type="checkbox" id="active-toggle" onchange="handleToggle()">
       <span class="toggle-track"></span>
     </label>
-  </div>
-
-  <div class="status-card" id="status-card">
-    <p class="status-inactive">Turn on reminders when you put out your feeders.</p>
   </div>
 
   <div class="schedule-card">
@@ -325,15 +326,9 @@
     <div class="schedule-row" id="row-93"><span class="schedule-range">93&deg;F and above</span><span class="schedule-days">Daily</span></div>
   </div>
 
-  <div class="log-card">
-    <div class="log-header">
-      <div class="log-title">Change Log</div>
-      <button class="log-clear-all" onclick="clearAllLog()">Clear All</button>
-    </div>
-    <div id="log-list"><p class="empty-log">No changes recorded yet.</p></div>
-  </div>
-
   <div class="bottom-divider"></div>
+
+  <button class="btn btn-recipe" onclick="openRecipe()">&#x1F9EA; DIY Nectar Recipe</button>
 
   <div class="notify-time-card">
     <label class="setup-field-label" for="notify-time-select">&#128276; Daily Notification Time</label>
@@ -352,8 +347,17 @@
       <option value="17:00">5:00 PM</option>
       <option value="18:00">6:00 PM</option>
     </select>
-    <div class="notify-time-note">Notifications are sent automatically — no shortcuts needed.</div>
-    <div class="notify-time-note" id="push-status" style="margin-top:6px; font-weight:500;"></div>
+    <div class="notify-time-note">Make sure to accept notifications when prompted in order to receive notifications.</div>
+  </div>
+
+  <div class="bottom-divider"></div>
+
+  <div class="log-card">
+    <div class="log-header">
+      <div class="log-title">Change Log</div>
+      <button class="log-clear-all" onclick="clearAllLog()">Clear All</button>
+    </div>
+    <div id="log-list"><p class="empty-log">No changes recorded yet.</p></div>
   </div>
 
   <div class="settings-link">
@@ -369,7 +373,6 @@
 </div>
 
 <script>
-console.log('[NB] Script started');
 // NOTE: named 'userLocation' (not 'location') to avoid shadowing window.location
 let state = { active: false, lastChanged: null, lastTemp: null, lastWeatherTime: null, changeLog: [], effectiveDueDate: null, peakTemp: null, peakTempDate: null, peakType: null, lastNotifiedDueDate: null, notifyTime: '08:00' };
 let userLocation = { zip: null, lat: null, lon: null, city: null, timezone: null };
@@ -421,36 +424,17 @@ function getUserId() {
 }
 
 async function registerPush() {
-  const statusEl = document.getElementById('push-status');
-  const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color || 'var(--muted)'; } };
-  console.log('[NB] registerPush called');
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.log('[NB] Push not supported');
-    setStatus('⚠️ Push not supported in this context', 'var(--warn)');
-    return null;
-  }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
   try {
-    setStatus('⏳ Registering notifications...', 'var(--muted)');
-    console.log('[NB] Waiting for SW ready...');
     const reg = await navigator.serviceWorker.ready;
-    console.log('[NB] SW ready, fetching VAPID key...');
-    setStatus('⏳ Fetching server key...', 'var(--muted)');
     const keyResp = await fetch(SERVER_URL + '/api/vapid-public-key');
     const { publicKey } = await keyResp.json();
-    console.log('[NB] Got VAPID key, subscribing...');
-    setStatus('⏳ Subscribing...', 'var(--muted)');
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey)
     });
-    console.log('[NB] Push subscription successful');
-    setStatus('✓ Notifications registered', 'var(--emerald)');
     return sub;
-  } catch(e) {
-    console.error('[NB] Push registration failed:', e);
-    setStatus('✗ Registration failed: ' + e.message, 'var(--ruby)');
-    return null;
-  }
+  } catch(e) { console.error('Push registration failed:', e); return null; }
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -461,10 +445,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function syncToServer(pushSubscription, retries = 3) {
-  const statusEl = document.getElementById('push-status');
-  const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color || 'var(--muted)'; } };
-  if (!userLocation.lat) { setStatus('⚠️ No location set', 'var(--warn)'); return; }
-  setStatus('⏳ Syncing with server...', 'var(--muted)');
+  if (!userLocation.lat) return;
   for (let i = 0; i < retries; i++) {
     try {
       const resp = await fetch(SERVER_URL + '/api/register', {
@@ -488,12 +469,10 @@ async function syncToServer(pushSubscription, retries = 3) {
           lastNotifiedDueDate: state.lastNotifiedDueDate
         })
       });
-      if (resp.ok) { setStatus('✓ Server sync complete', 'var(--emerald)'); return; }
-      setStatus('⚠️ Server returned ' + resp.status, 'var(--warn)');
+      if (resp.ok) return;
     } catch(e) {
-      setStatus('⏳ Retrying server sync (' + (i+1) + '/' + retries + ')...', 'var(--muted)');
       if (i < retries - 1) await new Promise(r => setTimeout(r, 5000));
-      else setStatus('✗ Server sync failed: ' + e.message, 'var(--ruby)');
+      else console.error('Server sync failed after retries:', e);
     }
   }
 }
@@ -837,7 +816,7 @@ function updateUI() {
       : '<div class="status-message info">&#10003; Last changed ' + formatDate(state.lastChanged) + '</div>';
     sc.innerHTML = '<div class="next-change-label">Next Change In</div>'
       + '<div class="days-countdown ' + cls + '">' + (daysLeft <= 0 ? (daysLeft === 0 ? '0' : daysLeft) : daysLeft) + '</div>'
-      + '<div class="days-word">' + (daysLeft < 0 ? 'OVERDUE' : daysLeft === 0 ? 'TODAY' : 'DAYS') + '</div>'
+      + '<div class="days-word">' + (daysLeft < 0 ? 'OVERDUE' : daysLeft === 0 ? 'TODAY' : daysLeft === 1 ? 'DAY' : 'DAYS') + '</div>'
       + '<div class="change-date">Due ' + dueDateStr + '</div>' + msg;
   } else {
     sc.innerHTML = '<p class="status-inactive">Fetching weather\u2026</p>';
@@ -876,14 +855,9 @@ if (state.active && state.lastWeatherTime && (Date.now() - new Date(state.lastWe
 }
 // Attempt to sync to server on load in case registration was missed
 if (userLocation.lat) {
-  console.log('[NB] Location found, pinging server...');
-  fetch(SERVER_URL + '/').then(r => console.log('[NB] Server ping status:', r.status)).catch(e => console.error('[NB] Server ping failed:', e));
+  fetch(SERVER_URL + '/').catch(() => {});
   setTimeout(() => {
-    console.log('[NB] Starting push registration...');
-    registerPush().then(sub => {
-      console.log('[NB] Push sub result:', sub ? 'got subscription' : 'null');
-      syncToServer(sub);
-    });
+    registerPush().then(sub => syncToServer(sub));
   }, 15000);
 }
 
