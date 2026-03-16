@@ -372,7 +372,7 @@
 console.log('[NB] Script started');
 // NOTE: named 'userLocation' (not 'location') to avoid shadowing window.location
 let state = { active: false, lastChanged: null, lastTemp: null, lastWeatherTime: null, changeLog: [], effectiveDueDate: null, peakTemp: null, peakTempDate: null, peakType: null, lastNotifiedDueDate: null, notifyTime: '08:00' };
-let userLocation = { zip: null, lat: null, lon: null, city: null };
+let userLocation = { zip: null, lat: null, lon: null, city: null, timezone: null };
 
 function loadState() {
   try { const s = localStorage.getItem('hb-feeder-state'); if (s) state = {...state, ...JSON.parse(s)}; } catch(e) {}
@@ -398,8 +398,15 @@ function updateEffectiveDueDate(temp) {
   due.setDate(due.getDate() + interval);
   state.effectiveDueDate = due.toISOString().split('T')[0];
 }
-function today() { return new Date().toISOString().split('T')[0]; }
-function daysBetween(d1, d2) { return Math.round((new Date(d2) - new Date(d1)) / 86400000); }
+function today() {
+  const tz = userLocation.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return new Date().toLocaleDateString('en-CA', { timeZone: tz });
+}
+function daysBetween(d1, d2) {
+  const date1 = new Date(d1 + 'T00:00:00');
+  const date2 = new Date(d2 + 'T00:00:00');
+  return Math.round((date2 - date1) / 86400000);
+}
 function formatDate(iso) {
   if (!iso) return '';
   return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
@@ -469,6 +476,7 @@ async function syncToServer(pushSubscription, retries = 3) {
           lat: userLocation.lat,
           lon: userLocation.lon,
           city: userLocation.city,
+          timezone: userLocation.timezone || null,
           pushSubscription: pushSubscription || undefined,
           notifyTime: state.notifyTime || '08:00',
           active: state.active,
@@ -557,6 +565,12 @@ async function saveLocationData() {
     userLocation.lat = result.latitude;
     userLocation.lon = result.longitude;
     userLocation.city = result.name + (result.admin1 ? ', ' + result.admin1 : '');
+    // Get timezone from a quick weather API call using the coordinates
+    try {
+      const tzResp = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + result.latitude + '&longitude=' + result.longitude + '&timezone=auto&forecast_days=1&daily=temperature_2m_max');
+      const tzData = await tzResp.json();
+      userLocation.timezone = tzData.timezone || null;
+    } catch(e) { userLocation.timezone = null; }
     status.textContent = '\u2713 Found: ' + userLocation.city;
     status.className = 'setup-status success';
     saveUserLocation();
