@@ -54,9 +54,9 @@
   .btn-setup { display: block; width: 100%; padding: 14px; border: none; border-radius: 10px; font-family: 'Jost', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; background: var(--acid); color: #1a2b1c; box-shadow: 0 4px 16px rgba(141,182,0,0.3); }
   .btn-setup:hover { background: var(--acid-hover); transform: translateY(-1px); }
   .btn-setup:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .setup-notif-note { background: rgba(190,30,45,0.05); border: 1px solid rgba(190,30,45,0.18); border-radius: 10px; padding: 11px 14px; font-size: 12px; color: var(--muted); max-width: 340px; width: 100%; line-height: 1.7; font-weight: 300; text-align: left; }
-  .setup-notif-note strong { color: var(--ruby); font-weight: 600; }
   .setup-footnote { font-size: 12px; color: var(--border-dark); max-width: 300px; line-height: 1.7; font-weight: 300; text-align: center; }
+  .setup-onboarding { background: rgba(4,106,56,0.05); border: 1px solid rgba(4,106,56,0.2); border-radius: 10px; padding: 14px 16px; font-size: 12px; color: var(--text2); max-width: 340px; width: 100%; line-height: 1.7; font-weight: 300; text-align: left; }
+  .setup-onboarding-title { font-size: 12px; font-weight: 700; color: var(--emerald); margin-bottom: 6px; }
 
   /* ---- Notify time card ---- */
   .notify-time-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 10px; }
@@ -222,8 +222,12 @@
     <div class="setup-status" id="setup-status"></div>
     <button class="btn-setup" id="setup-btn" onclick="saveLocationData()">Save My Location</button>
   </div>
-  <div class="setup-notif-note">
-    <strong>&#128276; Notifications:</strong> When prompted by your browser, tap Allow to receive alerts when it&rsquo;s time to change your feeders.
+  <div class="setup-onboarding">
+    <div class="setup-onboarding-title">&#128247; Before you get started:</div>
+    Add this app to your home screen for the best experience and to receive notifications.<br><br>
+    <strong>iPhone:</strong> Tap the Share button in Safari, then choose <em>Add to Home Screen.</em><br><br>
+    <strong>Android:</strong> Tap the three-dot menu in Chrome, then choose <em>Add to Home Screen.</em><br><br>
+    &#128276; Once on your home screen, open the app and allow notifications when prompted so you receive alerts when it&rsquo;s time to change your feeders.
   </div>
   <div class="setup-footnote">You can update your location at any time from the main app.</div>
   <div class="author-credit" style="margin-top:4px;">Created by <strong>Amy Rangel</strong> &bull; <a href="https://instagram.com/the.bird.zone" target="_blank">@the.bird.zone</a></div>
