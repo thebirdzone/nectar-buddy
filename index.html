@@ -667,8 +667,8 @@ async function fetchWeather() {
     due.setDate(due.getDate() + interval);
     let dueDateStr = due.toISOString().split('T')[0];
 
-    // A future forecast can't pull the due date before the date the heat actually occurs
-    if (entry.type === 'forecast' && entry.date > todayStr && dueDateStr < entry.date) {
+    // Due date can never be earlier than the date the temp occurred (applies to all entries)
+    if (dueDateStr < entry.date) {
       dueDateStr = entry.date;
     }
 
@@ -681,8 +681,10 @@ async function fetchWeather() {
     }
   });
 
-  const todayEntry = allTemps.find(x => x.date === todayStr);
-  const todayTemp = todayEntry ? todayEntry.temp : peakTemp;
+  // todayTemp should always be today's forecast specifically, not the peak
+  const todayForecastEntry = allTemps.find(x => x.date === todayStr && x.type === 'forecast');
+  const todayActualEntry = allTemps.find(x => x.date === todayStr && x.type === 'actual');
+  const todayTemp = (todayActualEntry || todayForecastEntry)?.temp || null;
 
   return { todayTemp, peakTemp, peakTempDate, peakType, bestDueDate, allTemps };
 }
