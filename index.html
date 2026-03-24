@@ -607,7 +607,8 @@ async function fetchWeather() {
   const maxForecastEnd = new Date(todayStr + 'T12:00:00');
   maxForecastEnd.setDate(maxForecastEnd.getDate() + 5); // today + 5 more = 6 days total
   const maxForecastEndStr = maxForecastEnd.toISOString().split('T')[0];
-  const forecastEndStr = state.effectiveDueDate && state.effectiveDueDate < maxForecastEndStr
+  // Cap at due date but never let it go earlier than today (handles overdue case)
+  const forecastEndStr = state.effectiveDueDate && state.effectiveDueDate > todayStr && state.effectiveDueDate < maxForecastEndStr
     ? state.effectiveDueDate
     : maxForecastEndStr;
 
