@@ -537,20 +537,41 @@ async function saveLocationData() {
   status.textContent = 'Looking up your location\u2026';
   status.className = 'setup-status loading'; btn.disabled = true;
   try {
-    const geoResp = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + zip + '&count=1&language=en&format=json&countryCode=US');
-    const geoData = await geoResp.json();
-    if (!geoData.results || geoData.results.length === 0) {
-      status.textContent = 'Zip code not found. Please try again.';
-      status.className = 'setup-status error'; btn.disabled = false; return;
-    }
-    const result = geoData.results[0];
-    userLocation.zip = zip;
-    userLocation.lat = result.latitude;
-    userLocation.lon = result.longitude;
-    userLocation.city = result.name + (result.admin1 ? ', ' + result.admin1 : '');
-    // Get timezone from a quick weather API call using the coordinates
+    let lat, lon, city;
+
+    // Try zippopotam.us first — most reliable for US zip codes
     try {
-      const tzResp = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + result.latitude + '&longitude=' + result.longitude + '&timezone=auto&forecast_days=1&daily=temperature_2m_max');
+      const zipResp = await fetch('https://api.zippopotam.us/us/' + zip);
+      if (zipResp.ok) {
+        const zipData = await zipResp.json();
+        const place = zipData.places[0];
+        lat = parseFloat(place.latitude);
+        lon = parseFloat(place.longitude);
+        city = place['place name'] + ', ' + place['state abbreviation'];
+      }
+    } catch(e) {}
+
+    // Fallback to Open-Meteo geocoding if zippopotam failed
+    if (!lat || !lon) {
+      const geoResp = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + zip + '&count=1&language=en&format=json&countryCode=US');
+      const geoData = await geoResp.json();
+      if (!geoData.results || geoData.results.length === 0) {
+        status.textContent = 'Zip code not found. Please try again.';
+        status.className = 'setup-status error'; btn.disabled = false; return;
+      }
+      const result = geoData.results[0];
+      lat = result.latitude;
+      lon = result.longitude;
+      city = result.name + (result.admin1 ? ', ' + result.admin1 : '');
+    }
+
+    userLocation.zip = zip;
+    userLocation.lat = lat;
+    userLocation.lon = lon;
+    userLocation.city = city;
+    // Get timezone from weather API using the coordinates
+    try {
+      const tzResp = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&timezone=auto&forecast_days=1&daily=temperature_2m_max');
       const tzData = await tzResp.json();
       userLocation.timezone = tzData.timezone || null;
     } catch(e) { userLocation.timezone = null; }
